@@ -29,14 +29,15 @@ public class JobController {
     }
 
     @GetMapping
-    public ResponseEntity<List<JobResponse>> getAllJobs(
-            @RequestParam(value = "companyId", required = false) Long companyId) {
-        if (companyId != null) {
-            return ResponseEntity.ok(jobservice.findByCompanyId(companyId));
-        } else {
+    public ResponseEntity<List<JobResponse>> getAllJobs() {
             return ResponseEntity.ok(jobservice.findAll());
-        }
     }
+
+    @GetMapping(params = "companyId")
+    public ResponseEntity<List<Job>> getJobsByCompany(@RequestParam(value = "companyId", required = true) Long companyId) {
+        return ResponseEntity.ok(jobservice.findByCompanyId(companyId));
+    }
+    
 
     @PostMapping
     public ResponseEntity<String> createJob(@RequestBody Job job){

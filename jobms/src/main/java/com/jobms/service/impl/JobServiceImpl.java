@@ -5,14 +5,11 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
-
 import com.jobms.bean.CompanySummary;
 import com.jobms.bean.Job;
+import com.jobms.client.CompanyClient;
 import com.jobms.dao.JobRepository;
 import com.jobms.entity.JobEntity;
 import com.jobms.exception.JobNotFoundException;
@@ -28,15 +25,14 @@ public class JobServiceImpl implements JobService {
 
     private JobRepository jobRepository;
     private JobMapper jobMapper;
-    private RestTemplate restTemplate;
+    private CompanyClient companyClient;
     private ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
 
-    public JobServiceImpl(JobRepository jobRepository, JobMapper jobMapper, RestTemplate restTemplate,
-            ObjectMapper objectMapper) {
+    public JobServiceImpl(JobRepository jobRepository, JobMapper jobMapper, CompanyClient companyClient, ObjectMapper objectMapper) {
         this.jobRepository = jobRepository;
         this.jobMapper = jobMapper;
-        this.restTemplate = restTemplate;
+        this.companyClient = companyClient;
         this.objectMapper = objectMapper;
     }
 
@@ -98,17 +94,12 @@ public class JobServiceImpl implements JobService {
 
     @Override
     public ResponseEntity<CompanySummary> getCompanySummary(Long companyId) {
-        String COMPANY_SERVICE_URL = "http://COMPANYMS:8081/companies/" + companyId;
         try {
-            ResponseEntity<JsonNode> response = restTemplate.exchange(
-                    COMPANY_SERVICE_URL,
-                    HttpMethod.GET,
-                    null,
-                    JsonNode.class);
+            ResponseEntity<JsonNode> response = companyClient.getCompanySummary(companyId);
             JsonNode node = response.getBody();
             CompanySummary companySummary = objectMapper.treeToValue(node.get("company"), CompanySummary.class);
             return new ResponseEntity<>(companySummary, response.getStatusCode());
-        } catch (RestClientException | JsonProcessingException | IllegalArgumentException ex) {
+        } catch (IllegalArgumentException | JsonProcessingException ex) {
             throw new RuntimeException("Error calling Company service: " + ex.getMessage(), ex);
         }
     }
@@ -122,18 +113,10 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public List<JobResponse> findByCompanyId(Long companyId) {
+    public List<Job> findByCompanyId(Long companyId) {
         List<JobEntity> jobEntities = jobRepository.findByCompanyId(companyId);
         logger.info("Fetched {} jobs for company ID {} from repository", jobEntities.size(), companyId);
-        return jobEntities.stream()
-                .map(jobEntity -> {
-                    Job job = jobMapper.toBean(jobEntity);
-                    JobResponse response = new JobResponse();
-                    response.setJob(job);
-                    response.setCompanySummary(null); // no company info populated
-                    return response;
-                })
-                .toList();
+        return jobMapper.toBeanList(jobEntities);
     }
 
     @Override

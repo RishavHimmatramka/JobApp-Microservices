@@ -19,6 +19,6 @@ public interface JobService {
     public JobResponse toJobResponse(JobEntity jobEntity);
     boolean validateCompany(Long companyId);
     ResponseEntity<CompanySummary> getCompanySummary(Long companyId);
-    List<JobResponse> findByCompanyId(Long companyId);
+    List<Job> findByCompanyId(Long companyId);
     void deleteByCompanyId(Long companyId);
 }
