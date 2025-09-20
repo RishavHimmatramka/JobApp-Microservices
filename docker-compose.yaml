@@ -1,0 +1,63 @@
+services:
+  # PostgreSQL Database Service
+  postgres:
+    image: postgres # Using a specific version is recommended
+    container_name: my_postgres_db
+    restart: unless-stopped
+    environment:
+      # POSTGRES_DB: jobappdb
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password # Change this in production
+      PGDATA: /data/postgres
+    ports:
+      # Exposes the PostgreSQL port to your local machine
+      - "5432:5432"
+    volumes:
+      # Persists database data on your local machine
+      - postgres:/data/postgres
+      - ./init:/docker-entrypoint-initdb.d
+    networks:
+      - app-network
+
+  # pgAdmin Web UI Service
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: my_pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@example.com # Change this
+      PGADMIN_DEFAULT_PASSWORD: admin # Change this in production
+      # PGADMIN_CONFIG_SERVER_MODE: 'False'
+      PGADMIN_SETUP_CONNECTIONS: 'servers.json'
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: 'False'
+      PGADMIN_CONFIG_SESSION_COOKIE_SECURE: 'False'
+      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: '1'
+      PGADMIN_CONFIG_PROXY_X_HOST_COUNT: '1'
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: '1'
+      PGADMIN_CONFIG_PROXY_X_PORT_COUNT: '1'
+      PGADMIN_CONFIG_WTF_CSRF_CHECK_DEFAULT: 'False'   # relax CSRF for proxy
+    ports:
+      # Exposes the pgAdmin web UI to your local machine on port 5050
+      - "5050:80"
+    networks:
+      - app-network
+    volumes:
+      - pgadmin:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro  # mount the file read-only
+  
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    ports:
+      - 9411:9411
+    networks:
+      - app-network
+
+# Docker Volumes for data persistence
+volumes:
+  postgres:
+  pgadmin:
+
+networks:
+  app-network:
+    driver: bridge
