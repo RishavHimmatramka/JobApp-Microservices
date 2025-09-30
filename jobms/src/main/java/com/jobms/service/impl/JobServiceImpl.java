@@ -1,39 +1,34 @@
 package com.jobms.service.impl;
 
 import java.util.List;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import com.jobms.bean.CompanySummary;
 import com.jobms.bean.Job;
-import com.jobms.client.CompanyClient;
 import com.jobms.dao.JobRepository;
 import com.jobms.entity.JobEntity;
 import com.jobms.exception.JobNotFoundException;
 import com.jobms.mapper.JobMapper;
 import com.jobms.response.JobResponse;
+import com.jobms.service.CompanyClientService;
 import com.jobms.service.JobService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 @Service
 public class JobServiceImpl implements JobService {
 
     private JobRepository jobRepository;
     private JobMapper jobMapper;
-    private CompanyClient companyClient;
-    private ObjectMapper objectMapper;
+    private CompanyClientService companyClientService;
     private static final Logger logger = LoggerFactory.getLogger(JobServiceImpl.class);
 
-    public JobServiceImpl(JobRepository jobRepository, JobMapper jobMapper, CompanyClient companyClient, ObjectMapper objectMapper) {
+    public JobServiceImpl(JobRepository jobRepository, JobMapper jobMapper, CompanyClientService companyClientService) {
         this.jobRepository = jobRepository;
         this.jobMapper = jobMapper;
-        this.companyClient = companyClient;
-        this.objectMapper = objectMapper;
+        this.companyClientService = companyClientService;
     }
 
     @Override
@@ -44,17 +39,19 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public void createJob(Job job) {
+    public ResponseEntity<String> createJob(Job job) {
         job.setId(null);
         if (job.getCompanyId() == null) {
             throw new IllegalArgumentException("Company ID is required to create a job");
         }
         Long companyId = job.getCompanyId();
         if (!validateCompany(companyId)) {
-            throw new JobNotFoundException("Cannot create job. Company with ID " + companyId + " does not exist.");
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Cannot create job: Company service is unavailable.");
         }
         JobEntity jobEntity = jobMapper.toEntity(job);
         jobRepository.save(jobEntity);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Job created successfully with ID: " + jobEntity.getId());
     }
 
     @Override
@@ -82,32 +79,20 @@ public class JobServiceImpl implements JobService {
         if (companyId != null && validateCompany(companyId)) {
             existingJob.setCompanyId(companyId);
         } else if (companyId != null && !validateCompany(companyId)) {
-            throw new JobNotFoundException("Cannot update job. Company with ID " + companyId + " does not exist.");
+            throw new IllegalArgumentException("Cannot update job: Company service is unavailable.");
         }
         return toJobResponse(jobRepository.save(existingJob));
     }
 
     @Override
     public boolean validateCompany(Long companyId) {
-        return getCompanySummary(companyId).getStatusCode().is2xxSuccessful();
-    }
-
-    @Override
-    public ResponseEntity<CompanySummary> getCompanySummary(Long companyId) {
-        try {
-            ResponseEntity<JsonNode> response = companyClient.getCompanySummary(companyId);
-            JsonNode node = response.getBody();
-            CompanySummary companySummary = objectMapper.treeToValue(node.get("company"), CompanySummary.class);
-            return new ResponseEntity<>(companySummary, response.getStatusCode());
-        } catch (IllegalArgumentException | JsonProcessingException ex) {
-            throw new RuntimeException("Error calling Company service: " + ex.getMessage(), ex);
-        }
+        return companyClientService.getCompanySummary(companyId).getStatusCode().is2xxSuccessful();
     }
 
     @Override
     public JobResponse toJobResponse(JobEntity jobEntity) {
         Job job = jobMapper.toBean(jobEntity);
-        CompanySummary companySummary = getCompanySummary(job.getCompanyId()).getBody();
+        CompanySummary companySummary = companyClientService.getCompanySummary(job.getCompanyId()).getBody();
         logger.debug("Response from Company MS: {}", companySummary.getId());
         return new JobResponse(job, companySummary);
     }

@@ -7,31 +7,29 @@ import org.springframework.stereotype.Service;
 import com.companyms.bean.Company;
 import com.companyms.bean.JobSummary;
 import com.companyms.bean.ReviewSummary;
-import com.companyms.client.JobClient;
-import com.companyms.client.ReviewClient;
 import com.companyms.dao.CompanyRepository;
 import com.companyms.entity.CompanyEntity;
 import com.companyms.exception.CompanyNotFoundException;
 import com.companyms.mapper.CompanyMapper;
 import com.companyms.response.CompanyResponse;
 import com.companyms.service.CompanyService;
+import com.companyms.service.JobClientService;
+import com.companyms.service.ReviewClientService;
 
 @Service
 public class CompanyServiceImpl implements CompanyService {
 
     private CompanyRepository companyRepository;
     private CompanyMapper companyMapper;
-    private JobClient jobClient;
-    private ReviewClient reviewClient;
-    // private RestTemplate restTemplate;
-    // private ObjectMapper objectMapper;
+    private JobClientService jobClientService;
+    private ReviewClientService reviewClientService;
 
     public CompanyServiceImpl(CompanyRepository companyRepository, CompanyMapper companyMapper,
-            JobClient jobClient, ReviewClient reviewClient) {
+            JobClientService jobClientService, ReviewClientService reviewClientService) {
         this.companyRepository = companyRepository;
         this.companyMapper = companyMapper;
-        this.jobClient = jobClient;
-        this.reviewClient = reviewClient;
+        this.jobClientService = jobClientService;
+        this.reviewClientService = reviewClientService;
     }
 
     @Override
@@ -71,26 +69,22 @@ public class CompanyServiceImpl implements CompanyService {
         if (!companyRepository.existsById(id)) {
             throw new CompanyNotFoundException("Company with ID " + id + " not found.");
         }
+        if (!jobClientService.isAvailable()) {
+            throw new RuntimeException("Job service is not available. Aborting deletion.");
+        }
+        if (!reviewClientService.isAvailable()) {
+            throw new RuntimeException("Review service is not available. Aborting deletion.");
+        }
+        jobClientService.deleteJobsByCompany(id);
+        reviewClientService.deleteReviewsByCompany(id);
         companyRepository.deleteById(id);
-        jobClient.deleteJobsByCompany(id);
-        reviewClient.deleteReviewsByCompany(id);
-    }
-
-    @Override
-    public List<JobSummary> getJobSummary(Long companyId) {
-        return jobClient.getJobsByCompany(companyId);
-    }
-
-    @Override
-    public List<ReviewSummary> getReviewSummary(Long companyId) {
-        return reviewClient.getReviewsByCompany(companyId);
     }
 
     @Override
     public CompanyResponse toCompanyResponse(CompanyEntity entity) {
         Company company = companyMapper.toBean(entity);
-        List<JobSummary> jobResponse = getJobSummary(company.getId());
-        List<ReviewSummary> reviewResponse = getReviewSummary(company.getId());
+        List<JobSummary> jobResponse = jobClientService.getJobSummary(company.getId());
+        List<ReviewSummary> reviewResponse = reviewClientService.getReviewSummary(company.getId());
         return new CompanyResponse(company, jobResponse, reviewResponse);
     }
 

@@ -17,4 +17,7 @@ public interface ReviewClient {
 
     @DeleteMapping("/reviews")
     void deleteReviewsByCompany(@RequestParam(value = "companyId", required = true) Long companyId);
+
+    @GetMapping("/actuator/health")
+    String healthCheck();
 }

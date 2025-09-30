@@ -17,4 +17,7 @@ public interface JobClient {
 
     @DeleteMapping("/jobs")
     void deleteJobsByCompany(@RequestParam(value = "companyId", required = true) Long companyId);
+
+    @GetMapping("/actuator/health")
+    String healthCheck();
 }
