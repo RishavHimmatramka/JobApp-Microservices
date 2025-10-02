@@ -11,18 +11,37 @@ public class CompanyEntity {
     private Long id;
     private String name;
     private String description;
+    private double averageRating;
+    private int reviewCount;
+    private double ratingSum;
 
     public CompanyEntity() {
     }
-    
+
+    public double getAverageRating() {
+        return averageRating;
+    }
+
+    public void setAverageRating(double averageRating) {
+        this.averageRating = averageRating;
+    }
 
     public Long getId() {
         return id;
     }
-    public CompanyEntity(Long id, String name, String description) {
+    public CompanyEntity(Long id, String name, String description, double averageRating, int reviewCount, double ratingSum) {
         this.id = id;
         this.name = name;
         this.description = description;
+        this.averageRating = averageRating;
+        this.reviewCount = reviewCount;
+        this.ratingSum = ratingSum;
+    }
+    public int getReviewCount() {
+        return reviewCount;
+    }
+    public void setReviewCount(int reviewCount) {
+        this.reviewCount = reviewCount;
     }
 
     public void setId(Long id) {
@@ -40,5 +59,11 @@ public class CompanyEntity {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+    public double getRatingSum() {
+        return ratingSum;
+    }
+    public void setRatingSum(double ratingSum) {
+        this.ratingSum = ratingSum;
     }
 }

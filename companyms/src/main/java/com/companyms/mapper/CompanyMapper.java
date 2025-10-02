@@ -14,8 +14,10 @@ import com.companyms.entity.CompanyEntity;
     ,nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface CompanyMapper {
     Company toBean(CompanyEntity companyEntity);
+    @Mapping(target = "ratingSum",ignore = true)
     CompanyEntity toEntity(Company company);
     List<Company> toBeanList(List<CompanyEntity> companyEntities);
     @Mapping(target = "id",ignore = true)
+    @Mapping(target = "ratingSum",ignore = true)
     void updateEntityFromBean(Company company, @MappingTarget CompanyEntity companyEntity);
 }

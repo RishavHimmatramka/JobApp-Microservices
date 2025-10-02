@@ -19,8 +19,4 @@ public interface JobService {
     boolean validateCompany(Long companyId);
     List<Job> findByCompanyId(Long companyId);
     void deleteByCompanyId(Long companyId);
-    // ResponseEntity<String> createJobFallback(Job job, Throwable throwable);
-    // List<JobResponse> findAllFallback(Throwable throwable);
-    // JobResponse getJobByIdFallback(Long id, Throwable throwable);
-    // JobResponse updateJobFallback(Long id, Job updatedjob, Throwable throwable);
 }

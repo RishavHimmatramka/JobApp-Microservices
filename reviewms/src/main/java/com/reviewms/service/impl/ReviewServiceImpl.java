@@ -10,6 +10,7 @@ import com.reviewms.dao.ReviewRepository;
 import com.reviewms.entity.ReviewEntity;
 import com.reviewms.exception.ReviewNotFoundException;
 import com.reviewms.mapper.ReviewMapper;
+import com.reviewms.messaging.ReviewEventPublisher;
 import com.reviewms.service.CompanyClientService;
 import com.reviewms.service.ReviewService;
 
@@ -18,10 +19,12 @@ public class ReviewServiceImpl implements ReviewService {
 
     private ReviewRepository reviewRepository;
     private ReviewMapper reviewMapper;
+    private ReviewEventPublisher reviewEventPublisher;
     private CompanyClientService companyClientService;
-    public ReviewServiceImpl(ReviewRepository reviewRepository, ReviewMapper reviewMapper, CompanyClientService companyClientService) {
+    public ReviewServiceImpl(ReviewRepository reviewRepository, ReviewMapper reviewMapper, ReviewEventPublisher reviewEventPublisher, CompanyClientService companyClientService) {
         this.reviewRepository = reviewRepository;
         this.reviewMapper = reviewMapper;
+        this.reviewEventPublisher = reviewEventPublisher;
         this.companyClientService = companyClientService;
     }
 
@@ -35,12 +38,9 @@ public class ReviewServiceImpl implements ReviewService {
     public ResponseEntity<String> addReview(Long companyId, Review review) {
         review.setId(null);
         review.setCompanyId(companyId);
-        if(!validateCompany(companyId)){
-            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body("Cannot create review: Company service is unavailable.");
-        }
         ReviewEntity reviewEntity = reviewMapper.toEntity(review);
         reviewRepository.save(reviewEntity);
+        reviewEventPublisher.publishReviewCreatedEvent(reviewMapper.toBean(reviewEntity));
         return ResponseEntity.status(HttpStatus.CREATED).body("Review created successfully with ID: " + reviewEntity.getId());
     }
 
@@ -56,8 +56,10 @@ public class ReviewServiceImpl implements ReviewService {
     public void updateReview(Long reviewId, Review review) {
         ReviewEntity reviewEntity = reviewRepository.findById(reviewId)
             .orElseThrow(() -> new ReviewNotFoundException("Review not found with id: " + reviewId));
-        reviewMapper.updateEntityFromBean(review, reviewEntity);
+        double oldRating = reviewEntity.getRating();
+        reviewMapper.updateEntityFromBean(review, reviewEntity);        
         reviewRepository.save(reviewEntity);
+        reviewEventPublisher.publishReviewUpdatedEvent(reviewMapper.toBean(reviewEntity), oldRating);
     }
 
     @Override
@@ -65,6 +67,7 @@ public class ReviewServiceImpl implements ReviewService {
         if(!reviewRepository.existsById(reviewId)){
             throw new ReviewNotFoundException("Review with ID " + reviewId + " not found");
         }
+        reviewEventPublisher.publishReviewDeletedEvent(findById(reviewId));
         reviewRepository.deleteById(reviewId);
     }
 

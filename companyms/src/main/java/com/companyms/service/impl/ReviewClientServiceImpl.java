@@ -51,7 +51,6 @@ public class ReviewClientServiceImpl implements ReviewClientService {
         }
     }
 
-
     @Override
     public List<ReviewSummary> getReviewFallback(Long companyId, Throwable throwable) {
         return List.of();

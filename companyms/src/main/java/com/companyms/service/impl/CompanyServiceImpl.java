@@ -9,25 +9,33 @@ import com.companyms.bean.JobSummary;
 import com.companyms.bean.ReviewSummary;
 import com.companyms.dao.CompanyRepository;
 import com.companyms.entity.CompanyEntity;
+import com.companyms.eventDTO.ReviewCreatedEvent;
+import com.companyms.eventDTO.ReviewDeletedEvent;
+import com.companyms.eventDTO.ReviewUpdatedEvent;
 import com.companyms.exception.CompanyNotFoundException;
 import com.companyms.mapper.CompanyMapper;
+import com.companyms.messaging.CompanyEventPublisher;
 import com.companyms.response.CompanyResponse;
 import com.companyms.service.CompanyService;
 import com.companyms.service.JobClientService;
 import com.companyms.service.ReviewClientService;
+
+import jakarta.transaction.Transactional;
 
 @Service
 public class CompanyServiceImpl implements CompanyService {
 
     private CompanyRepository companyRepository;
     private CompanyMapper companyMapper;
+    private CompanyEventPublisher companyEventPublisher;
     private JobClientService jobClientService;
     private ReviewClientService reviewClientService;
 
     public CompanyServiceImpl(CompanyRepository companyRepository, CompanyMapper companyMapper,
-            JobClientService jobClientService, ReviewClientService reviewClientService) {
+            CompanyEventPublisher companyEventPublisher, JobClientService jobClientService, ReviewClientService reviewClientService) {
         this.companyRepository = companyRepository;
         this.companyMapper = companyMapper;
+        this.companyEventPublisher = companyEventPublisher;
         this.jobClientService = jobClientService;
         this.reviewClientService = reviewClientService;
     }
@@ -69,15 +77,8 @@ public class CompanyServiceImpl implements CompanyService {
         if (!companyRepository.existsById(id)) {
             throw new CompanyNotFoundException("Company with ID " + id + " not found.");
         }
-        if (!jobClientService.isAvailable()) {
-            throw new RuntimeException("Job service is not available. Aborting deletion.");
-        }
-        if (!reviewClientService.isAvailable()) {
-            throw new RuntimeException("Review service is not available. Aborting deletion.");
-        }
-        jobClientService.deleteJobsByCompany(id);
-        reviewClientService.deleteReviewsByCompany(id);
         companyRepository.deleteById(id);
+        companyEventPublisher.publishCompanyDeletedEvent(id);
     }
 
     @Override
@@ -88,4 +89,53 @@ public class CompanyServiceImpl implements CompanyService {
         return new CompanyResponse(company, jobResponse, reviewResponse);
     }
 
+    @Override
+    @Transactional
+    public void updateCompanyRatingOnCreate(ReviewCreatedEvent event) {
+        // Long companyId = event.getCompanyId();
+        // CompanyEntity companyEntity = companyRepository.findById(companyId)
+        //     .orElseThrow(() -> new CompanyNotFoundException("Company with ID " + companyId + " not found."));
+        // double avg = companyEntity.getAverageRating();
+        // int count = companyEntity.getReviewCount();
+        // double newAvg = (avg * count + event.getRating()) / (count + 1);
+        // companyEntity.setAverageRating(newAvg);
+        // companyEntity.setReviewCount(count + 1);
+        // companyRepository.save(companyEntity);
+        companyRepository.updateRatingAtomically(event.getCompanyId(), event.getRating(), 1);
+    }
+
+    @Override
+    @Transactional
+    public void updateCompanyRatingOnUpdate(ReviewUpdatedEvent event) {
+        // Long companyId = event.getCompanyId();
+        // CompanyEntity companyEntity = companyRepository.findById(companyId)
+        //     .orElseThrow(() -> new CompanyNotFoundException("Company with ID " + companyId + " not found."));
+        // double avg = companyEntity.getAverageRating();
+        // int count = companyEntity.getReviewCount();
+        // double newAvg = (avg * count - event.getOldRating() + event.getNewRating()) / count;
+        // companyEntity.setAverageRating(newAvg);
+        // companyRepository.save(companyEntity);
+        companyRepository.updateRatingAtomically(event.getCompanyId(), event.getNewRating() - event.getOldRating(), 0);
+    }
+
+    @Override
+    @Transactional
+    public void updateCompanyRatingOnDelete(ReviewDeletedEvent event) {
+        // Long companyId = event.getCompanyId();
+        // CompanyEntity companyEntity = companyRepository.findById(companyId)
+        //     .orElseThrow(() -> new CompanyNotFoundException("Company with ID " + companyId + " not found."));
+        // double avg = companyEntity.getAverageRating();
+        // int count = companyEntity.getReviewCount();
+        // if (count <= 1) {
+        //     companyEntity.setAverageRating(0);
+        //     companyEntity.setReviewCount(0);
+        // } else {
+        //     double newAvg = (avg * count - event.getRating()) / (count - 1);
+        //     companyEntity.setAverageRating(newAvg);
+        //     companyEntity.setReviewCount(count - 1);
+        // }
+        // companyRepository.save(companyEntity);
+        companyRepository.updateRatingAtomically(event.getCompanyId(), -event.getRating(), -1);
+    }
+    
 }
