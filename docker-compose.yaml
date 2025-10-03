@@ -45,6 +45,88 @@ services:
       - pgadmin:/var/lib/pgadmin
       - ./pgadmin/servers.json:/pgadmin4/servers.json:ro  # mount the file read-only
   
+  config-server:
+    image: rishav235/config-server:latest
+    container_name: config-server
+    ports:
+      - 8080:8080
+    networks:
+      - microservice-network
+      - app-network
+    depends_on:
+      - servicereg
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  servicereg:
+    image: rishav235/service-registry:latest
+    container_name: servicereg
+    ports:
+      - 8761:8761
+    networks:
+      - microservice-network
+      - app-network
+    depends_on:
+      - rabbitmq
+      - zipkin
+      - postgres
+      - pgadmin
+
+  companyms:
+    image: rishav235/companyms:latest
+    container_name: companyms
+    ports:
+      - 8081:8081
+    networks:
+      - microservice-network
+      - app-network
+    depends_on:
+      - servicereg
+      - config-server
+    environment:
+    - SPRING_PROFILES_ACTIVE=docker
+
+  jobms:
+    image: rishav235/jobms:latest
+    container_name: jobms
+    ports:
+      - 8082:8082
+    networks:
+      - microservice-network
+      - app-network
+    depends_on:
+      - servicereg
+      - config-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  reviewms:
+    image: rishav235/reviewms:latest
+    container_name: reviewms
+    ports:
+      - 8083:8083
+    networks:
+      - microservice-network
+      - app-network
+    depends_on:
+      - servicereg
+      - config-server
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  api-gateway:
+    image: rishav235/api-gateway:latest
+    container_name: api-gateway
+    ports:
+      - 8084:8084
+    networks:
+      - microservice-network
+      - app-network
+    depends_on:
+      - servicereg
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
   zipkin:
     image: openzipkin/zipkin
     container_name: zipkin
@@ -72,4 +154,6 @@ volumes:
 
 networks:
   app-network:
+    driver: bridge
+  microservice-network:
     driver: bridge
