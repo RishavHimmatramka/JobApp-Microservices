@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: reviewms
+  namespace: jobapp
+spec:
+  selector:
+    app: reviewms  
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8083

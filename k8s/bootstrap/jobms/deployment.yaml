@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jobms
+  namespace: jobapp
+  labels:
+    app: jobms
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: jobms
+      labels:
+        app: jobms
+    spec:
+      containers:
+        - name: jobms
+          image: rishav235/jobms:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8082
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: jobms

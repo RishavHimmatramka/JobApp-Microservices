@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reviewms
+  namespace: jobapp
+  labels:
+    app: reviewms
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: reviewms
+      labels:
+        app: reviewms
+    spec:
+      containers:
+        - name: reviewms
+          image: rishav235/reviewms:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8083
+          env:
+            - name: SPRING_PROFILES_ACTIVE
+              value: k8s
+      restartPolicy: Always
+  selector:
+    matchLabels:
+      app: reviewms

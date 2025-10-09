@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: companyms
+  namespace: jobapp
+spec:
+  selector:
+    app: companyms  
+  ports:
+    - port: 80
+      targetPort: 8081
+  type: LoadBalancer
