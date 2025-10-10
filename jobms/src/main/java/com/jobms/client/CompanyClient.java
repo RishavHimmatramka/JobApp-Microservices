@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-@FeignClient(name="COMPANYMS")
+@FeignClient(name="COMPANYMS", url="${companyms.url:}")
 public interface CompanyClient {
 
     @GetMapping("/companies/{companyId}")

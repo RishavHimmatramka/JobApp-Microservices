@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.companyms.bean.ReviewSummary;
 
-@FeignClient(name="REVIEWMS")
+@FeignClient(name="REVIEWMS", url="${reviewms.url:}")
 public interface ReviewClient {
 
     @GetMapping("/reviews")

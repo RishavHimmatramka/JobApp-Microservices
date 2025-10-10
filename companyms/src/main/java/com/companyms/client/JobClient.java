@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import com.companyms.bean.JobSummary;
 
-@FeignClient(name="JOBMS")
+@FeignClient(name="JOBMS", url="${jobms.url:}")
 public interface JobClient {
 
     @GetMapping("/jobs")
